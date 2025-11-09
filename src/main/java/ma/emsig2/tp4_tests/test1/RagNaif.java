@@ -1,6 +1,5 @@
 package ma.emsig2.tp4_tests.test1;
 
-
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.DocumentParser;
 import dev.langchain4j.data.document.DocumentSplitter;
@@ -28,87 +27,73 @@ import java.util.Scanner;
 public class RagNaif {
 
     public static void main(String[] args) {
-        String geminiApiKey = System.getenv("GEMINI");
-        if (geminiApiKey == null || geminiApiKey.isEmpty()) {
-            System.err.println("Erreur : La variable d'environnement GEMINI n'est pas définie.");
+        // === 1. Vérification de la clé API ===
+        String apiKey = System.getenv("GEMINI_KEY");
+        if (apiKey == null || apiKey.isBlank()) {
+            System.err.println("Clé API Gemini non définie ! Utilise : setx GEMINI_KEY \"ta_clé\"");
             return;
         }
 
-        System.out.println("=== PHASE 1 : Ingestion des documents ===");
+        System.out.println("Clé API détectée. Initialisation du RAG...\n");
 
-        Path documentPath = Paths.get("src/main/resources/support_rag.pdf");
-        System.out.println("Chargement du document : " + documentPath);
-
+        // === 2. Chargement du document PDF ===
+        Path cheminPDF = Paths.get("src/main/resources/rag.pdf");
         DocumentParser parser = new ApacheTikaDocumentParser();
-        Document document = FileSystemDocumentLoader.loadDocument(documentPath, parser);
-        System.out.println("Document chargé avec succès");
+        Document doc = FileSystemDocumentLoader.loadDocument(cheminPDF, parser);
+        System.out.println("Document chargé avec succès.");
 
+        // === 3. Découpage du document ===
         DocumentSplitter splitter = DocumentSplitters.recursive(300, 30);
-        List<TextSegment> segments = splitter.split(document);
-        System.out.printf("Document découpé en %d segments\n", segments.size());
+        List<TextSegment> segments = splitter.split(doc);
+        System.out.println("Nombre de segments : " + segments.size());
 
-        System.out.println("Création du modèle d'embedding...");
-        EmbeddingModel embeddingModel = new AllMiniLmL6V2EmbeddingModel();
+        // === 4. Génération des embeddings ===
+        EmbeddingModel embedder = new AllMiniLmL6V2EmbeddingModel();
+        List<Embedding> embeddings = embedder.embedAll(segments).content();
 
-        System.out.println("Génération des embeddings...");
-        List<Embedding> embeddings = embeddingModel.embedAll(segments).content();
-        System.out.printf("%d embeddings créés\n", embeddings.size());
+        EmbeddingStore<TextSegment> store = new InMemoryEmbeddingStore<>();
+        store.addAll(embeddings, segments);
+        System.out.println("Embeddings stockés en mémoire.\n");
 
-        EmbeddingStore<TextSegment> embeddingStore = new InMemoryEmbeddingStore<>();
-        embeddingStore.addAll(embeddings, segments);
-        System.out.println("Embeddings stockés en mémoire\n");
-
-        System.out.println("=== PHASE 2 : Configuration de l'Assistant RAG ===");
-
-        System.out.println("Connexion au modèle Gemini...");
-        ChatLanguageModel chatModel = GoogleAiGeminiChatModel.builder()
-                .apiKey(geminiApiKey)
+        // === 5. Configuration du modèle Gemini ===
+        ChatLanguageModel gemini = GoogleAiGeminiChatModel.builder()
+                .apiKey(apiKey)
                 .modelName("gemini-2.0-flash-exp")
                 .temperature(0.7)
                 .build();
 
-        ContentRetriever contentRetriever = EmbeddingStoreContentRetriever.builder()
-                .embeddingStore(embeddingStore)
-                .embeddingModel(embeddingModel)
-                .maxResults(2)
+        // === 6. Configuration du Retriever ===
+        ContentRetriever retriever = EmbeddingStoreContentRetriever.builder()
+                .embeddingStore(store)
+                .embeddingModel(embedder)
+                .maxResults(3)
                 .minScore(0.5)
                 .build();
-        System.out.println("Récupérateur de contenu configuré");
 
+        // === 7. Création de l'assistant RAG ===
         Assistant assistant = AiServices.builder(Assistant.class)
-                .chatLanguageModel(chatModel)
+                .chatLanguageModel(gemini)
                 .chatMemory(MessageWindowChatMemory.withMaxMessages(10))
-                .contentRetriever(contentRetriever)
+                .contentRetriever(retriever)
                 .build();
+
         System.out.println("Assistant RAG prêt !\n");
 
-        Scanner scanner = new Scanner(System.in);
-        System.out.println("Assistant RAG Naïf - Tapez 'quitter' pour arrêter\n");
-
+        // === 8. Boucle interactive ===
+        Scanner sc = new Scanner(System.in);
         while (true) {
-            System.out.print("Votre question : ");
-            String question = scanner.nextLine().trim();
-
-            if (question.equalsIgnoreCase("quitter") || question.equalsIgnoreCase("exit")) {
-                System.out.println("\nAu revoir !");
-                break;
-            }
-
-            if (question.isEmpty()) {
-                System.out.println("Veuillez poser une question.\n");
-                continue;
-            }
+            System.out.print("Question > ");
+            String question = sc.nextLine().trim();
+            if (question.equalsIgnoreCase("exit")) break;
 
             try {
-                System.out.println("Recherche et génération de la réponse...");
-                String reponse = assistant.chat(question);
-                System.out.println("\nRéponse :");
-                System.out.println(reponse);
-                System.out.println();
+                String answer = assistant.chat(question);
+                System.out.println("\n Réponse : " + answer + "\n");
             } catch (Exception e) {
-                System.err.println("Erreur : " + e.getMessage());
+                System.err.println(" Erreur : " + e.getMessage());
             }
         }
-        scanner.close();
+        sc.close();
+        System.out.println(" Session terminée.");
     }
 }
