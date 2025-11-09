@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>ma.emsiG2</groupId>
@@ -9,19 +11,29 @@
     <version>1.0-SNAPSHOT</version>
     <name>TP4 Test1 RAG Naif</name>
     <packaging>jar</packaging>
+
     <properties>
         <java.version>21</java.version>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- j ai changé la version de langchain et j ai ravailler avec cette version car la versio 1.8.0
+         n est pas compatible avec le modele d embedding langchain4j-embeddings-all-minilm-l6-v2 -->
         <langchain4j.version>0.36.2</langchain4j.version>
         <slf4j.version>2.0.16</slf4j.version>
         <junit.version>5.10.2</junit.version>
+        <log4j.version>2.20.0</log4j.version>
     </properties>
 
     <dependencies>
-        <!-- j'ai changer la version de langchain car 1.8.0 n est
-         pas compatible avec le modele d embeding  -->
+
+        <!-- Commons IO -->
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>2.16.1</version>
+        </dependency>
+
         <!-- LangChain4j Core -->
         <dependency>
             <groupId>dev.langchain4j</groupId>
@@ -29,49 +41,51 @@
             <version>${langchain4j.version}</version>
         </dependency>
 
-        <!-- Google AI Gemini -->
+        <!-- Google Gemini -->
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-google-ai-gemini</artifactId>
             <version>${langchain4j.version}</version>
         </dependency>
 
-        <!-- Embeddings AllMiniLmL6V2 -->
+        <!-- Embeddings MiniLM -->
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-embeddings-all-minilm-l6-v2</artifactId>
             <version>${langchain4j.version}</version>
         </dependency>
 
-        <!-- Parsing PDF via Apache Tika -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-jdk14</artifactId>
+            <version>2.0.16</version> <!-- utilise la version la plus récente si besoin -->
+        </dependency>
+        <!-- Apache Tika Document Parser -->
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-document-parser-apache-tika</artifactId>
             <version>${langchain4j.version}</version>
         </dependency>
 
-        <!-- Web search (optionnel) -->
+        <!-- Web Search (Tavily) -->
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-web-search-engine-tavily</artifactId>
             <version>${langchain4j.version}</version>
         </dependency>
 
-        <!-- Logging SLF4J -->
+        <!-- Logging -->
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-jdk14</artifactId>
-            <version>${slf4j.version}</version>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>${log4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-api</artifactId>
+            <version>${log4j.version}</version>
         </dependency>
 
-        <!-- Commons IO requis par Tika -->
-        <dependency>
-            <groupId>commons-io</groupId>
-            <artifactId>commons-io</artifactId>
-            <version>2.16.1</version>
-        </dependency>
-
-        <!-- Logback runtime -->
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
@@ -79,7 +93,7 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- JUnit 5 pour tests unitaires -->
+        <!-- JUnit 5 -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
@@ -92,11 +106,12 @@
             <version>${junit.version}</version>
             <scope>test</scope>
         </dependency>
+
     </dependencies>
 
     <build>
         <plugins>
-            <!-- Compiler Plugin -->
+            <!-- Compiler -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -107,7 +122,7 @@
                 </configuration>
             </plugin>
 
-            <!-- Surefire Plugin pour exécuter les tests -->
+            <!-- Surefire pour les tests -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
@@ -115,4 +130,5 @@
             </plugin>
         </plugins>
     </build>
+
 </project>
